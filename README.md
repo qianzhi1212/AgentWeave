@@ -186,3 +186,5 @@ audio:
 ## License
 
 MIT
+
+> 特别致谢：[二哥的 PaiAgent](https://gitcode.com/javabetter/PaiAgent) 为本项目提供了重要的学习和参考基础。
