@@ -1,0 +1,17 @@
+spring:
+  profiles:
+    active: dev
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+audio:
+  synthesis:
+    provider: mock
+
+llm:
+  client:
+    connect-timeout: 10000
+    read-timeout: 60000
+    max-retries: 2

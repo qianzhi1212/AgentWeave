@@ -1,0 +1,32 @@
+# ===== Backend (Java / Maven) =====
+backend/target/
+backend/data/
+*.class
+*.jar
+*.log
+
+# ===== Frontend (Node.js) =====
+frontend/node_modules/
+frontend/dist/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Data =====
+data/
+*.mv.db
+*.trace.db
+
+# ===== Screenshots (temp) =====
+screenshot*.png
+
+# ===== Large binaries =====
+maven.zip
+backend/.mvn/wrapper/maven-wrapper.jar
