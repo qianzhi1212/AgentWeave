@@ -1,71 +1,99 @@
-# AI Agent 流图执行面板
+# AgentWeave
 
-可视化 AI 工作流编辑器 — 通过拖拽节点、连线、配置参数搭建 AI 处理流程，实时调试执行结果。
+> **从零手写**的可视化 AI Agent 编排平台：拖拽节点、连线、配置参数即可搭建 AI 工作流，实时调试每一步的执行状态、输入输出与耗时。
+>
+> 前端 React 18 + React Flow，后端 Spring Boot 3 + 自研拓扑执行引擎 —— **引擎内核不依赖任何编排框架，全部手写**，适合想看懂工作流引擎原理的人。
 
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
-![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=java&logoColor=white)
+![AgentWeave 编辑器界面](docs/assets/canvas-overview.png)
 
-## 功能特性
+## 🤔 为什么造这个轮子
 
-- **可视化画布**：基于 React Flow 的拖拽式节点编辑器
-- **4 种节点类型**：用户输入、大模型 (LLM)、音频合成、结束
-- **节点连线**：通过拖拽手柄连接节点，数据自动沿边流动
-- **实时配置**：点击节点即可在右侧面板配置参数
-- **大模型集成**：支持 DeepSeek / OpenAI 及所有兼容 OpenAI 协议的 LLM 服务
-- **调试执行**：一键运行工作流，逐步查看每个节点的输入/输出/耗时
-- **拓扑排序**：自动检测循环依赖，按正确顺序执行节点
+Dify / n8n 很强大，但执行引擎是黑盒。AgentWeave 不追求大而全，核心只有三个**亲手实现**的模块，代码量小到几小时能读完：
 
-## 界面预览
+- **拓扑引擎**：Kahn 算法拓扑排序 + 循环依赖检测，决定节点执行顺序
+- **节点执行器**：策略模式注册表，每种节点一个执行器，加新节点 = 加一个类
+- **执行上下文**：数据沿连线流动的"黑板"，调试时间线直接读它
 
+## 🧭 当前进度
+
+- [x] React Flow 可视化画布（拖拽 / 连线 / 配置面板）
+- [x] Kahn 拓扑排序 + 环检测
+- [x] LLM 节点（OpenAI 兼容协议：DeepSeek / OpenAI / 通义千问…）
+- [x] 调试时间线（节点状态 / 耗时 / 输入输出 / 错误上报）
+- [x] 工作流持久化（H2 内嵌文件库，零部署）
+- [x] LLM Provider 管理接口
+- [ ] 接入真实 TTS（音频节点当前为 Mock 模式）
+- [ ] 条件分支 / 循环执行
+- [ ] 自定义节点插件机制
+
+## ✨ 功能特性
+
+| | |
+|---|---|
+| **可视化画布** | 基于 React Flow 的拖拽式节点编辑器，数据沿连线自动流动 |
+| **4 种节点** | 用户输入、大模型 (LLM)、音频合成（Mock）、结束 |
+| **实时配置** | 点击节点即在右侧面板改参数，温度 / Tokens / 提示词模板 |
+| **调试执行** | 一键运行，时间线逐节点展示成功 / 错误 / 耗时 |
+| **拓扑排序** | 自动检测循环依赖，按正确顺序执行 |
+| **多 LLM 服务** | 任何兼容 OpenAI `/chat/completions` 的服务即插即用 |
+
+## 🏗 架构
+
+```mermaid
+flowchart LR
+    subgraph 前端 · React 18 + Vite
+        B[画布<br/>React Flow] --> C[配置面板]
+        D[调试抽屉]
+    end
+    subgraph 后端 · Spring Boot 3
+        E[REST API<br/>/api/v1/*] --> F[WorkflowEngine]
+        F --> G[TopologicalSorter<br/>Kahn · 环检测]
+        F --> H[NodeExecutor 注册表<br/>输入 / LLM / 音频 / 结束]
+        H --> I[(ExecutionContext)]
+        F --> J[(H2 文件数据库)]
+    end
+    B -- 工作流 JSON --> E
+    I -- 执行结果 --> D
+    H <-. OpenAI 兼容协议 .-> K[[DeepSeek / OpenAI]]
 ```
-┌──────────┬──────────────────────────────────────┬──────────────┐
-│ 节点面板  │            画布区域                    │   配置面板    │
-│          │                                      │              │
-│ 📝用户输入│  📝用户输入 ──→ 🤖大模型 ──→ 🔊音频 ──→ 🏁│  模型: deepseek │
-│ 🤖大模型  │                                      │  API Key: ***│
-│ 🔊音频合成│                                      │  Base URL: ..│
-│ 🏁结束    │                                      │  温度: 0.7   │
-└──────────┴──────────────────────────────────────┴──────────────┘
-```
 
-## 技术栈
+> 详细设计见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | React 18 + TypeScript + Vite |
-| 画布 | @xyflow/react (React Flow) |
-| UI | Ant Design 5 |
-| 状态 | Zustand |
-| 后端 | Spring Boot 3.3 + Java 17 |
-| 数据库 | H2 (内嵌文件模式) |
-| LLM | OpenAI 兼容协议 (RestClient) |
+## 🎮 界面预览
 
-## 快速开始
+拖线搭好流程后点「调试」，输入测试文本立即执行：
+
+![调试面板时间线](docs/assets/debug-timeline.png)
+
+图中时间线逐节点显示状态（成功 4ms / 错误 7ms）、输出数据与错误原因 —— 节点在画布上也会同步亮起状态角标。
+
+## 🚀 快速开始
 
 ### 环境要求
 
-- **Java 17+**
-- **Node.js 18+**
-- **Maven 3.9+**
+| 依赖 | 版本 | 备注 |
+|---|---|---|
+| Java | **17+** | 推荐 [Temurin 17](https://adoptium.net/temurin/releases/?version=17) |
+| Node.js | 18+ | |
+| Maven | 3.9+ | |
 
-### 1. 编译后端
+> 🇨 **国内网络加速**（可选，装依赖更快）：
+> ```bash
+> npm config set registry https://registry.npmmirror.com
+> ```
+> Maven 在 `~/.m2/settings.xml` 配置阿里云镜像（[模板](https://developer.aliyun.com/mirror/maven)）。
+
+### 1. 编译并启动后端
 
 ```bash
 cd backend
 mvn clean package -DskipTests
-```
-
-### 2. 启动后端
-
-```bash
 java -jar target/workflow-engine-1.0.0-SNAPSHOT.jar --server.port=8081
 ```
 
-等待输出 `Started AiWorkflowEngineApplication in x.xxx seconds`。
+看到 `Started AiWorkflowEngineApplication` 即成功。
 
-### 3. 启动前端
+### 2. 启动前端
 
 ```bash
 cd frontend
@@ -73,108 +101,60 @@ npm install
 npm run dev
 ```
 
-### 4. 打开浏览器
+### 3. 打开浏览器
 
-访问 http://localhost:5173
+访问 **http://localhost:5173**
 
-## 使用指南
+### 4. 跑通第一条工作流
 
-### 搭建工作流
+1. 拖节点搭流程：`用户输入 → 大模型 → 结束`，从节点**右侧圆点**拖线到下一个节点**左侧圆点**
+2. 点「大模型」节点，右侧面板填入你的 DeepSeek API Key（[申请入口](https://platform.deepseek.com/api_keys)）
+3. 点「保存工作流」→「调试 ▶」→ 输入任意文本 →「开始调试」
 
-1. 从左侧面板拖拽节点到画布
-2. 从节点**右侧小圆点**拖线到下一个节点的**左侧小圆点**
-3. 搭建流程：`用户输入 → 大模型 → 音频合成 → 结束`
+## 📡 API 一览
 
-### 配置大模型节点
+| 方法 & 路径 | 作用 |
+|---|---|
+| `GET/POST /api/v1/workflows` | 工作流列表 / 创建（保存画布） |
+| `PUT/DELETE /api/v1/workflows/{id}` | 更新 / 删除工作流 |
+| `POST /api/v1/executions/debug` | **执行工作流（调试运行的入口）** |
+| `GET /api/v1/executions/{executionId}` | 查执行记录与各节点结果 |
+| `GET /api/v1/llm-providers` · `POST .../{id}/test` | Provider 管理 / 连通性测试 |
 
-点击大模型节点，在右侧配置面板填写：
-
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| 模型名称 | 模型标识 | `deepseek-chat` |
-| API Key | API 密钥 | （空，必填） |
-| Base URL | API 地址 | `https://api.deepseek.com/v1` |
-| 温度 | 0~2 | `0.7` |
-| 最大 Tokens | 回复长度上限 | `2048` |
-| 系统提示词 | 设定 AI 角色 | （空） |
-| 用户提示词模板 | `{{input}}` 引用输入 | `{{input}}` |
-
-> 支持所有兼容 OpenAI `/chat/completions` 接口的服务（DeepSeek、OpenAI、通义千问等）。
-
-### 保存与调试
-
-1. 点击 **「保存工作流」** — 将画布上的节点和连线同步到后端
-2. 点击 **「调试 ▶」** — 打开调试面板
-3. 输入测试文本，点击 **「开始调试」**
-4. 查看时间线中每个节点的执行状态、输出数据和耗时
-
-### 支持的 LLM 服务
-
-| 服务 | Base URL | 模型名称 |
-|------|----------|---------|
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
-| 其他兼容服务 | 对应 API 地址 | 对应模型标识 |
-
-## 项目结构
+## 📁 项目结构（速览）
 
 ```
-ai-agent-flow/
-├── backend/                         # 后端 (Spring Boot)
-│   ├── pom.xml
-│   └── src/main/java/com/ai/workflow/
-│       ├── controller/              # REST API 控制器
-│       ├── service/                 # 业务逻辑
-│       ├── engine/                  # 工作流执行引擎
-│       │   ├── WorkflowEngine       #   引擎主流程
-│       │   ├── TopologicalSorter    #   拓扑排序 (Kahn)
-│       │   ├── ExecutionContext     #   执行上下文
-│       │   └── executor/           #   节点执行器
-│       ├── entity/                  # JPA 实体
-│       ├── repository/              # 数据访问
-│       ├── dto/                     # 请求/响应 DTO
-│       ├── llm/                     # LLM 客户端
-│       ├── audio/                   # 音频合成
-│       └── enums/                   # 枚举定义
-│
-├── frontend/                        # 前端 (React + Vite)
-│   ├── package.json
-│   └── src/
-│       ├── components/              # UI 组件
-│       │   ├── Canvas/             #   React Flow 画布
-│       │   ├── Nodes/              #   4 种节点组件
-│       │   ├── Sidebar/            #   左侧节点面板
-│       │   ├── NodeConfig/         #   右侧配置面板
-│       │   ├── DebugDrawer/        #   调试抽屉
-│       │   └── Layout/             #   页面布局
-│       ├── store/                   # Zustand 状态管理
-│       ├── services/                # API 调用封装
-│       ├── types/                   # TypeScript 类型
-│       └── constants/               # 常量定义
-│
-├── ARCHITECTURE.md                  # 架构设计文档
-└── README.md                        # 本文件
+├── backend/src/main/java/com/ai/workflow/
+│   ├── engine/          # ⭐ 自研执行引擎（拓扑排序 + 节点执行器 + 上下文）
+│   ├── controller/      # REST API
+│   ├── llm/             # OpenAI 兼容客户端
+│   └── entity/ service/ # JPA 实体与业务层
+├── frontend/src/
+│   ├── components/      # 画布 / 节点 / 配置面板 / 调试抽屉
+│   └── store/ services/ # Zustand 状态 + API 封装
 ```
 
-详细架构设计请参阅 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+完整目录树见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
-## 常见问题
+## ❓ 常见问题
 
-**端口被占用**
+**Q: 大模型节点报 `No default LLM provider configured`？**
+在节点配置面板填入 API Key 即可（无需其它 Provider 配置），这是最常见的第一步卡点。
+
+**Q: `mvn` 不是内部或外部命令？**
+Maven 未装或未进 PATH。Windows 可到 [Apache Maven 官网](https://maven.apache.org/download.cgi) 下载 zip 解压后配置环境变量。
+
+**Q: 端口被占用？**
 ```bash
-# 找到占用 8081 的进程并结束
 netstat -ano | findstr :8081
 taskkill /PID <PID> /F
 ```
 
-**大模型调用超时**
-确认 Base URL 可访问。默认使用 `https://api.deepseek.com/v1`，确保网络可达。
+**Q: 大模型调用超时？**
+确认 Base URL 网络可达；默认 `https://api.deepseek.com/v1`。
 
-**大模型报错 "No default LLM provider configured"**
-在大模型节点配置面板中填写 API Key 即可，无需额外配置 Provider。
-
-**音频无法播放**
-当前为 Mock 模式（模拟 URL）。接入真实 TTS 服务请修改 `application.yml`：
+**Q: 音频节点没有声音？**
+当前为 Mock 模式（返回模拟 URL）。接入真实 TTS 修改 `application.yml`：
 ```yaml
 audio:
   synthesis:
@@ -183,6 +163,11 @@ audio:
     api-key: your-key
 ```
 
-## License
+## 🙏 致谢
 
-MIT
+- 学习参考：[二哥的 PaiAgent](https://gitcode.com/javabetter/PaiAgent)
+- 画布引擎：[@xyflow/react](https://reactflow.dev/)　UI：Ant Design 5　后端：Spring Boot 3
+
+## 📄 License
+
+[MIT](LICENSE)
