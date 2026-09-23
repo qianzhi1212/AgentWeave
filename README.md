@@ -41,20 +41,20 @@ Dify / n8n 很强大，但执行引擎是黑盒。AgentWeave 不追求大而全�
 
 ```mermaid
 flowchart LR
-    subgraph 前端 · React 18 + Vite
-        B[画布<br/>React Flow] --> C[配置面板]
-        D[调试抽屉]
+    subgraph FE["前端 · React 18 + Vite"]
+        B["画布<br/>React Flow"] --> C["配置面板"]
+        D["调试抽屉"]
     end
-    subgraph 后端 · Spring Boot 3
-        E[REST API<br/>/api/v1/*] --> F[WorkflowEngine]
-        F --> G[TopologicalSorter<br/>Kahn · 环检测]
-        F --> H[NodeExecutor 注册表<br/>输入 / LLM / 音频 / 结束]
-        H --> I[(ExecutionContext)]
-        F --> J[(H2 文件数据库)]
+    subgraph BE["后端 · Spring Boot 3"]
+        E["REST API<br/>/api/v1/*"] --> F["WorkflowEngine"]
+        F --> G["TopologicalSorter<br/>Kahn · 环检测"]
+        F --> H["NodeExecutor 注册表<br/>输入 / LLM / 音频 / 结束"]
+        H --> I[("ExecutionContext")]
+        F --> J[("H2 文件数据库")]
     end
-    B -- 工作流 JSON --> E
-    I -- 执行结果 --> D
-    H <-. OpenAI 兼容协议 .-> K[[DeepSeek / OpenAI]]
+    B -- "工作流 JSON" --> E
+    I -- "执行结果" --> D
+    H -. "OpenAI 兼容协议" .-> K(["DeepSeek / OpenAI"])
 ```
 
 > 详细设计见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
